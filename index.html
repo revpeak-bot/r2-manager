@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>R2 Cloudflare Manager - Login</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body class="login-page">
+    <div class="login-container">
+        <div class="login-card">
+            <div class="login-header">
+                <div class="logo">
+                    <i class="fas fa-cloud-upload-alt"></i>
+                </div>
+                <h1>R2 Cloud Manager</h1>
+                <p>Kelola bucket R2 Cloudflare Anda dengan mudah</p>
+            </div>
+            
+            <form id="loginForm" class="login-form">
+                <div class="alert alert-error" id="loginError" style="display: none;">
+                    <i class="fas fa-exclamation-circle"></i>
+                    <span></span>
+                </div>
+                
+                <div class="form-group">
+                    <label for="accountId">
+                        <i class="fas fa-id-card"></i>
+                        Account ID
+                    </label>
+                    <input type="text" id="accountId" placeholder="Masukkan Account ID Cloudflare" required>
+                    <small>Dapatkan dari dashboard Cloudflare R2</small>
+                </div>
+                
+                <div class="form-group">
+                    <label for="accessKey">
+                        <i class="fas fa-key"></i>
+                        Access Key ID
+                    </label>
+                    <input type="text" id="accessKey" placeholder="Masukkan Access Key ID" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="secretKey">
+                        <i class="fas fa-lock"></i>
+                        Secret Access Key
+                    </label>
+                    <div class="password-input">
+                        <input type="password" id="secretKey" placeholder="Masukkan Secret Key" required>
+                        <button type="button" class="toggle-password" onclick="togglePassword('secretKey')">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <button type="submit" class="btn-login" id="loginBtn">
+                    <span class="btn-text">Masuk ke Dashboard</span>
+                    <span class="btn-loader" style="display: none;">
+                        <i class="fas fa-spinner fa-spin"></i> Memproses...
+                    </span>
+                </button>
+            </form>
+            
+            <div class="login-footer">
+                <p>Data disimpan secara lokal di browser Anda</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/config.js"></script>
+    <script src="js/api.js"></script>
+    <script>
+        function togglePassword(id) {
+            const input = document.getElementById(id);
+            const icon = event.currentTarget.querySelector('i');
+            
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.classList.remove('fa-eye');
+                icon.classList.add('fa-eye-slash');
+            } else {
+                input.type = 'password';
+                icon.classList.remove('fa-eye-slash');
+                icon.classList.add('fa-eye');
+            }
+        }
+
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const accountId = document.getElementById('accountId').value.trim();
+            const accessKey = document.getElementById('accessKey').value.trim();
+            const secretKey = document.getElementById('secretKey').value.trim();
+            
+            if (!accountId || !accessKey || !secretKey) {
+                showError('Semua field harus diisi');
+                return;
+            }
+            
+            const loginBtn = document.getElementById('loginBtn');
+            const btnText = loginBtn.querySelector('.btn-text');
+            const btnLoader = loginBtn.querySelector('.btn-loader');
+            
+            // Show loading
+            btnText.style.display = 'none';
+            btnLoader.style.display = 'inline-block';
+            loginBtn.disabled = true;
+            
+            try {
+                // Simpan credentials di sessionStorage
+                sessionStorage.setItem('r2_account_id', accountId);
+                sessionStorage.setItem('r2_access_key', accessKey);
+                sessionStorage.setItem('r2_secret_key', secretKey);
+                
+                // Test koneksi dengan list buckets
+                const result = await api.listBuckets();
+                
+                if (result.success) {
+                    window.location.href = 'dashboard.html';
+                } else {
+                    showError(result.error || 'Gagal terhubung ke R2');
+                    sessionStorage.clear();
+                }
+            } catch (error) {
+                showError(error.message);
+                sessionStorage.clear();
+            } finally {
+                // Hide loading
+                btnText.style.display = 'inline-block';
+                btnLoader.style.display = 'none';
+                loginBtn.disabled = false;
+            }
+        });
+        
+        function showError(message) {
+            const errorAlert = document.getElementById('loginError');
+            errorAlert.querySelector('span').textContent = message;
+            errorAlert.style.display = 'flex';
+            
+            setTimeout(() => {
+                errorAlert.style.display = 'none';
+            }, 5000);
+        }
+    </script>
+</body>
+</html>
